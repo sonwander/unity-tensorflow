@@ -1,0 +1,46 @@
+# train_model.py
+import pandas as pd
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Carregar dados do CSV
+data = pd.read_csv('path_to_your_data.csv')  # Substitua com o caminho do arquivo CSV
+
+# Preparar os dados
+X = data.drop('steps_next_day', axis=1).values
+y = data['steps_next_day'].values
+
+# Divisão dos dados
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Normalização
+scaler = StandardScaler().fit(X_train)
+X_train = scaler.transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Definição do modelo
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(1)
+])
+
+# Compilação do modelo
+model.compile(optimizer='adam', loss='mse')
+
+# Treinamento do modelo
+model.fit(X_train, y_train, validation_split=0.2, epochs=100)
+
+# Avaliação do modelo
+test_loss = model.evaluate(X_test, y_test)
+print(f"Test MSE: {test_loss}")
+
+# Conversão para TensorFlow Lite
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()
+
+# Salvar o modelo TFLite
+tflite_model_name = 'steps_model.tflite'
+with open(tflite_model_name, 'wb') as f:
+    f.write(tflite_model)
